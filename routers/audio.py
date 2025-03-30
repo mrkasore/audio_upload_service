@@ -37,25 +37,7 @@ async def upload_audio(
 
     return {"message": "Файл загружен", "filename": name, "path": full_path}
 
-@router.get("/my", tags=['Аудио, Пользователь'])
-async def get_my_audio_files(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    stmt = select(AudioFile).where(AudioFile.owner_id == current_user.id)
-    result = await db.execute(stmt)
-    audio_files = result.scalars().all()
-    return [
-        {"id": audio.id, "filename": audio.filename, "path": audio.path}
-        for audio in audio_files
-    ]
-
-@router.get("/{user_id}", tags=['Аудио, Пользователь'])
-async def get_audio_files(
-    user_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
+async def get_user_audio_files(user_id: int, db: AsyncSession):
     stmt = select(AudioFile).where(AudioFile.owner_id == user_id)
     result = await db.execute(stmt)
     audio_files = result.scalars().all()
@@ -63,3 +45,18 @@ async def get_audio_files(
         {"id": audio.id, "filename": audio.filename, "path": audio.path}
         for audio in audio_files
     ]
+
+@router.get("/my", tags=['Аудио, Пользователь'])
+async def get_my_audio_files(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return await get_user_audio_files(current_user.id, db)
+
+@router.get("/{user_id}", tags=['Аудио, Пользователь'])
+async def get_audio_files(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return await get_user_audio_files(user_id, db)
