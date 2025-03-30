@@ -1,6 +1,7 @@
 import httpx
 import os
 import jwt
+import uuid
 from fastapi.security import OAuth2PasswordBearer
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,9 +36,15 @@ async def get_yandex_user_info(access_token: str):
         response.raise_for_status()
         return response.json()
 
-def create_internal_token(user_id: int):
-    expire = datetime.utcnow() + timedelta(days=7)
+def create_access_token(user_id: int):
+    expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode = {"sub": str(user_id), "exp": expire}
+    return jwt.encode(to_encode, os.getenv("SECRET_KEY"), algorithm=os.getenv("ALGORITHM"))
+
+def create_refresh_token(user_id: int):
+    expire = datetime.utcnow() + timedelta(days=7)
+    jti = str(uuid.uuid4())
+    to_encode = {"sub": str(user_id), "exp": expire, "jti": jti}
     return jwt.encode(to_encode, os.getenv("SECRET_KEY"), algorithm=os.getenv("ALGORITHM"))
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)) -> User:

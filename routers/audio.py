@@ -13,7 +13,7 @@ MEDIA_DIR = "media"
 
 os.makedirs(MEDIA_DIR, exist_ok=True)
 
-@router.post("/upload")
+@router.post("/upload", tags=['Аудио, Пользователь'])
 async def upload_audio(
     file: UploadFile = File(...),
     name: str = Form(...),
@@ -37,13 +37,26 @@ async def upload_audio(
 
     return {"message": "Файл загружен", "filename": name, "path": full_path}
 
-
-@router.get("/my")
+@router.get("/my", tags=['Аудио, Пользователь'])
 async def get_my_audio_files(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     stmt = select(AudioFile).where(AudioFile.owner_id == current_user.id)
+    result = await db.execute(stmt)
+    audio_files = result.scalars().all()
+    return [
+        {"id": audio.id, "filename": audio.filename, "path": audio.path}
+        for audio in audio_files
+    ]
+
+@router.get("/{user_id}", tags=['Аудио, Пользователь'])
+async def get_audio_files(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    stmt = select(AudioFile).where(AudioFile.owner_id == user_id)
     result = await db.execute(stmt)
     audio_files = result.scalars().all()
     return [
